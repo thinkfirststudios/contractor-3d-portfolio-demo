@@ -1,0 +1,726 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Resort Backyard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: full-height model viewer with a drafting-sheet side panel (stacks below the model on phones). */
+:root {
+  --bg: #e9ece8;
+  --panel: #f6f7f4;
+  --ink: #1c2320;
+  --muted: #5d6762;
+  --rule: #cdd3ce;
+  --accent: #a8216f;        /* the plans' own CAD-magenta wall linework, toned down */
+  --accent-ink: #ffffff;
+  --scene: #dfe3de;
+  --label-bg: rgba(246, 247, 244, 0.92);
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #151a18; --panel: #1c2220; --ink: #e4e9e5; --muted: #98a39d; --rule: #2f3834;
+    --accent: #e070b0; --accent-ink: #1a0f15; --scene: #1d2321; --label-bg: rgba(28, 34, 32, 0.9);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #151a18; --panel: #1c2220; --ink: #e4e9e5; --muted: #98a39d; --rule: #2f3834;
+  --accent: #e070b0; --accent-ink: #1a0f15; --scene: #1d2321; --label-bg: rgba(28, 34, 32, 0.9);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px; }
+[hidden] { display: none !important; }
+.app { display: grid; grid-template-columns: minmax(0, 1fr) 370px; height: 100%; }
+.stage { position: relative; min-width: 0; min-height: 0; background: var(--scene); overflow: hidden; }
+.stage canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+.labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.lbl {
+  position: absolute; left: 0; top: 0; white-space: nowrap; text-align: center;
+  background: var(--label-bg); border: 1px solid var(--rule); border-radius: 3px;
+  padding: 3px 7px 4px; line-height: 1.15; will-change: transform;
+}
+.lbl b { display: block; font: 600 13px/1.1 var(--font-display); letter-spacing: 0.06em; text-transform: uppercase; }
+.lbl span { font: 400 11px var(--font-mono); color: var(--muted); }
+.lbl.tag { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); padding: 4px 10px; }
+.lbl.tag b { font-size: 17px; }
+.hint {
+  position: absolute; left: max(12px, env(safe-area-inset-left, 0px)); bottom: 12px;
+  font: 400 11px var(--font-mono); color: var(--muted); background: var(--label-bg);
+  padding: 4px 8px; border-radius: 3px; pointer-events: none;
+}
+.seg {
+  display: inline-flex; background: var(--panel); border: 1px solid var(--rule); border-radius: 4px; overflow: hidden;
+}
+.views { position: absolute; top: 12px; left: max(12px, env(safe-area-inset-left, 0px)); }
+.seg button {
+  font: 600 13px var(--font-display); letter-spacing: 0.08em; text-transform: uppercase;
+  border: 0; background: transparent; color: var(--ink); padding: 8px 14px; cursor: pointer;
+}
+.seg button + button { border-left: 1px solid var(--rule); }
+.seg button[aria-pressed="true"] { background: var(--accent); color: var(--accent-ink); }
+button:focus-visible, tr:focus-visible, input:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+.panel {
+  background: var(--panel); border-left: 1px solid var(--rule); overflow-y: auto; min-width: 0;
+  padding-block: 24px 28px; padding-left: 24px; padding-right: max(24px, env(safe-area-inset-right, 0px));
+  display: flex; flex-direction: column; gap: 22px;
+}
+.back { font: 500 12px var(--font-mono); color: var(--muted); text-decoration: none; }
+.back:hover { color: var(--accent); }
+.eyebrow { font: 500 11px var(--font-mono); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 700 38px/0.98 var(--font-display); letter-spacing: 0.01em; margin: 6px 0 10px; text-wrap: balance; }
+.summary { margin: 0 0 14px; line-height: 1.5; max-width: 60ch; }
+.meta { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; margin: 0; }
+.meta dt { font: 500 11px var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); padding-top: 2px; }
+.meta dd { margin: 0; font-variant-numeric: tabular-nums; }
+.section-h { font: 600 15px var(--font-display); letter-spacing: 0.1em; text-transform: uppercase; margin: 0 0 10px; padding-bottom: 6px; border-bottom: 1px solid var(--ink); }
+.ctrl { display: grid; gap: 12px; }
+.ctrl label { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.ctrl .row { display: grid; grid-template-columns: 52px 1fr auto; align-items: center; gap: 10px; }
+.ctrl .row > span { color: var(--ink); }
+.ctrl output { font: 400 12px var(--font-mono); color: var(--muted); min-width: 4ch; text-align: right; }
+input[type="range"], input[type="checkbox"] { accent-color: var(--accent); }
+input[type="range"] { width: 100%; }
+table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+td, th { padding: 8px 4px; border-bottom: 1px solid var(--rule); vertical-align: baseline; text-align: left; }
+td:first-child, th:first-child { padding-left: 0; white-space: nowrap; }
+.ctrl .seg { justify-self: start; }
+td:last-child, th:last-child { padding-right: 0; }
+td.dim { font: 400 12px var(--font-mono); color: var(--muted); }
+td.num, th.num { font: 400 12px var(--font-mono); text-align: right; white-space: nowrap; }
+thead th { font: 500 11px var(--font-mono); text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+tr.grp th { font: 600 13px var(--font-display); letter-spacing: 0.08em; text-transform: uppercase; color: var(--accent); padding-top: 14px; }
+tbody tr.pick { cursor: pointer; }
+tbody tr.pick td:first-child { font-weight: 500; }
+tbody tr.pick:hover td, tbody tr.pick.on td { color: var(--accent); }
+.best { color: var(--accent); font-weight: 600; }
+.note { font-size: 12.5px; line-height: 1.55; color: var(--muted); margin: 0; max-width: 60ch; }
+.note code { font: 400 12px var(--font-mono); }
+
+@media (max-width: 760px) {
+  html, body { height: auto; }
+  .app { display: block; }
+  .stage { height: 62svh; min-height: 340px; }
+  .panel { border-left: 0; border-top: 1px solid var(--rule); padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+  h1 { font-size: 32px; }
+  .hint { display: none; }
+}
+</style>
+
+<div class="app">
+  <div class="stage" id="stage">
+    <div class="labels" id="labels"></div>
+    <div class="seg views" role="group" aria-label="Camera view">
+      <button type="button" data-view="3d" aria-pressed="true">3D</button>
+      <button type="button" data-view="plan" aria-pressed="false">Plan</button>
+      <button type="button" data-view="eye" aria-pressed="false">Eye level</button>
+    </div>
+    <div class="hint">Drag to orbit · scroll to zoom · right-drag to pan</div>
+  </div>
+
+  <aside class="panel">
+    <header>
+      <a class="back" href="index.html">← All projects</a>
+      <div class="eyebrow" id="eyebrow" style="margin-top:14px"></div>
+      <h1 id="title"></h1>
+      <p class="summary" id="summary"></p>
+      <dl class="meta" id="meta"></dl>
+    </header>
+
+    <section>
+      <h2 class="section-h">Model</h2>
+      <div class="ctrl">
+        <div class="row" id="floorsRow" hidden>
+          <span>Floors</span>
+          <div class="seg" role="group" aria-label="Floors shown" id="floors"></div>
+          <span></span>
+        </div>
+        <div class="row">
+          <label for="wallH">Walls</label>
+          <input type="range" id="wallH" min="0.15" max="1" step="0.01" value="1">
+          <output id="wallOut" for="wallH"></output>
+        </div>
+        <label><input type="checkbox" id="showFurn" checked> Furniture</label>
+        <label><input type="checkbox" id="showLabels" checked> Room labels</label>
+      </div>
+    </section>
+
+    <section id="compareSec" hidden>
+      <h2 class="section-h">Compare options</h2>
+      <table>
+        <thead><tr><th>Option</th><th class="num">Beds</th><th class="num">Baths</th><th class="num">Room area</th></tr></thead>
+        <tbody id="compare"></tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2 class="section-h">Room schedule</h2>
+      <table><tbody id="rooms"></tbody></table>
+    </section>
+
+    <p class="note" id="note"></p>
+  </aside>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+const SPEC = {"project": {"eyebrow": "Sample project · Pool & outdoor", "title": "Resort Backyard", "level": "Pool, spa & outdoor living", "plot": "60' × 46'", "summary": "A full backyard build: a 36' lap-and-play pool with a sun ledge and entry steps, a raised spa, travertine deck with loungers, a pergola-covered dining and lounge area, an outdoor kitchen with bar seating, and a fire pit corner.", "facts": [["Site", "60' × 46' backyard"], ["Pool", "36' × 16', 5' deep"], ["Spa", "8' × 8', raised 18\""], ["Extras", "Pergola, outdoor kitchen, fire pit"]], "note": "Sample design for demonstration. Dimensions are inside the pool and spa walls."}, "source": null, "defaults": {"slab": 0.5, "wall_height": 10, "door_head": 8, "window_sill": 3, "window_head": 8}, "eye_room": "Pool Deck", "models": [{"name": "Resort Backyard", "levels": [{"name": "Backyard", "elevation": 0, "width": 60.0, "depth": 46.0, "slab": [], "rooms": [{"name": "Alfresco & Outdoor Kitchen", "dims": "58'-8\" × 13'-4\"", "floor": "pavers", "r": [0.67, 0.67, 59.33, 14.0], "kind": "outdoor", "area": 782}, {"name": "Pool Deck", "dims": "58'-8\" × 27'", "floor": "travertine", "r": [0.67, 14.0, 59.33, 41.0], "kind": "outdoor", "label_at": [36.0, 17.5], "area": 944}, {"name": "Pool", "dims": "36' × 16'", "floor": "none", "r": [6.0, 22.0, 42.0, 38.0], "kind": "outdoor", "area": 576}, {"name": "Spa", "dims": "8' × 8'", "floor": "none", "r": [43.5, 23.0, 51.5, 31.0], "kind": "outdoor", "area": 64}, {"name": "Lawn", "dims": "58'-8\" × 4'-4\"", "floor": "lawn", "r": [0.67, 41.0, 59.33, 45.33], "kind": "outdoor", "area": 254}], "walls": [[0.0, 0.0, 8.0, 0.67], [20.0, 0.0, 26.0, 0.67], [34.0, 0.0, 40.0, 0.67], [50.0, 0.0, 60.0, 0.67]], "lowwalls": [{"r": [0.0, 0.67, 0.67, 46.0], "h": 6, "color": "fence"}, {"r": [59.33, 0.67, 60.0, 46.0], "h": 6, "color": "fence"}, {"r": [0.0, 45.33, 50.0, 46.0], "h": 6, "color": "fence"}, {"r": [54.0, 45.33, 60.0, 46.0], "h": 6, "color": "fence"}], "segs": [], "openings": [{"type": "slider", "r": [8.0, 0.0, 20.0, 0.67], "label": "Living room doors"}, {"type": "slider", "r": [26.0, 0.0, 34.0, 0.67], "label": "Kitchen doors"}, {"type": "window", "r": [40.0, 0.0, 50.0, 0.67]}, {"type": "gate", "r": [50.0, 45.5, 54.0, 45.83], "label": "Side gate"}], "furniture": [{"type": "pool", "r": [6.0, 22.0, 42.0, 38.0], "depth": 5, "steps": [{"edge": "-x", "o": 0, "tread": 5, "top": -0.75}, {"edge": "-x", "o": 5, "tread": 1.3, "top": -1.9}, {"edge": "-x", "o": 6.3, "tread": 1.3, "top": -3.1}]}, {"type": "pool", "r": [43.5, 23.0, 51.5, 31.0], "depth": 2, "raise": 1.5, "steps": [{"edge": "-x", "o": 0, "tread": 1.4, "top": -1.7}, {"edge": "+x", "o": 0, "tread": 1.4, "top": -1.7}, {"edge": "-y", "o": 0, "tread": 1.4, "top": -1.7}, {"edge": "+y", "o": 0, "tread": 1.4, "top": -1.7}]}, {"type": "pergola", "r": [2.0, 2.0, 28.0, 13.0], "h": 9}, {"type": "box", "r": [5.5, 5.0, 15.5, 8.5], "h": 2.5, "color": "timber"}, {"type": "box", "r": [6.2, 3.6, 7.7, 4.8], "h": 1.6, "color": "fabric"}, {"type": "box", "r": [8.8, 3.6, 10.3, 4.8], "h": 1.6, "color": "fabric"}, {"type": "box", "r": [11.4, 3.6, 12.9, 4.8], "h": 1.6, "color": "fabric"}, {"type": "box", "r": [14.0, 3.6, 15.5, 4.8], "h": 1.6, "color": "fabric"}, {"type": "box", "r": [6.2, 8.7, 7.7, 9.9], "h": 1.6, "color": "fabric"}, {"type": "box", "r": [8.8, 8.7, 10.3, 9.9], "h": 1.6, "color": "fabric"}, {"type": "box", "r": [11.4, 8.7, 12.9, 9.9], "h": 1.6, "color": "fabric"}, {"type": "box", "r": [14.0, 8.7, 15.5, 9.9], "h": 1.6, "color": "fabric"}, {"type": "box", "r": [18.5, 3.0, 27.0, 5.2], "h": 2.6, "color": "cushion"}, {"type": "box", "r": [24.8, 5.2, 27.0, 11.5], "h": 2.6, "color": "cushion"}, {"type": "box", "r": [19.5, 6.8, 23.0, 9.8], "h": 1.3, "color": "timber"}, {"type": "box", "r": [33.0, 1.0, 52.0, 3.6], "h": 3, "color": "stone"}, {"type": "box", "r": [37.5, 1.3, 41.5, 3.3], "y": 3, "h": 0.7, "color": "steel"}, {"type": "box", "r": [44.5, 1.4, 46.5, 3.2], "y": 3, "h": 0.1, "color": "steel"}, {"type": "box", "r": [33.0, 3.6, 52.0, 4.4], "y": 3, "h": 0.15, "color": "counter"}, {"type": "cyl", "c": [44.0, 5.4], "h": 2.6, "color": "timber", "rad": 0.75}, {"type": "cyl", "c": [46.5, 5.4], "h": 2.6, "color": "timber", "rad": 0.75}, {"type": "cyl", "c": [49.0, 5.4], "h": 2.6, "color": "timber", "rad": 0.75}, {"type": "pergola", "r": [32.5, 0.67, 52.5, 6.5], "h": 9}, {"type": "lounger", "r": [8.5, 14.6, 10.8, 20.9], "head": "-y"}, {"type": "lounger", "r": [12.6, 14.6, 14.9, 20.9], "head": "-y"}, {"type": "lounger", "r": [19.5, 14.6, 21.8, 20.9], "head": "-y"}, {"type": "lounger", "r": [23.6, 14.6, 25.9, 20.9], "head": "-y"}, {"type": "umbrella", "c": [11.7, 15.6], "rad": 4.0}, {"type": "umbrella", "c": [22.7, 15.6], "rad": 4.0}, {"type": "cyl", "c": [52.5, 36.6], "h": 1.3, "color": "stone", "rad": 2.3}, {"type": "cyl", "c": [52.5, 36.6], "h": 1.45, "color": "fire", "rad": 1.3}, {"type": "box", "r": [47.4, 35.6, 49.4, 37.6], "h": 2.6, "color": "cushion"}, {"type": "box", "r": [55.6, 35.6, 57.6, 37.6], "h": 2.6, "color": "cushion"}, {"type": "box", "r": [51.5, 32.0, 53.5, 34.0], "h": 2.6, "color": "cushion"}, {"type": "box", "r": [51.5, 38.9, 53.5, 40.9], "h": 2.6, "color": "cushion"}, {"type": "tree", "c": [4.0, 43.2], "h": 15, "rad": 2.6}, {"type": "tree", "c": [56.4, 43.2], "h": 14, "rad": 2.6}, {"type": "tree", "c": [56.6, 17.5], "h": 12, "rad": 2.2}, {"type": "shrub", "c": [1.9, 18.0], "rad": 1.1}, {"type": "shrub", "c": [1.9, 24.5], "rad": 1.1}, {"type": "shrub", "c": [1.9, 31.0], "rad": 1.1}, {"type": "shrub", "c": [1.9, 37.5], "rad": 1.1}, {"type": "shrub", "c": [20.0, 43.4], "rad": 1.0}, {"type": "shrub", "c": [30.0, 43.4], "rad": 1.0}, {"type": "shrub", "c": [40.0, 43.4], "rad": 1.0}]}], "width": 60.0, "depth": 46.0, "covered_area": 2760, "living_area": 0}]};
+const D = SPEC.defaults, H = D.wall_height, GAP = 10;
+const MODELS = SPEC.models;
+const MULTI = MODELS.length > 1;
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const ft = v => { const f = Math.floor(v), i = Math.round((v - f) * 12); return i === 12 ? `${f + 1}'` : i ? `${f}'-${i}"` : `${f}'`; };
+const el = id => document.getElementById(id);
+
+// Lay models side by side, centred on the origin
+const totalW = MODELS.reduce((s, m) => s + m.width, 0) + GAP * (MODELS.length - 1);
+const maxD = Math.max(...MODELS.map(m => m.depth));
+const maxLevels = Math.max(...MODELS.map(m => m.levels.length));
+const topElev = Math.max(...MODELS.flatMap(m => m.levels.map(l => l.elevation)));
+{ let x = -totalW / 2; for (const m of MODELS) { m.ox = x; m.oz = -maxD / 2; x += m.width + GAP; } }
+
+// ---------- panel text ----------
+el("eyebrow").textContent = SPEC.project.eyebrow;
+el("title").textContent = SPEC.project.title;
+el("summary").textContent = SPEC.project.summary || "";
+const facts = SPEC.project.facts ? SPEC.project.facts.slice() : [
+  ["Plot", SPEC.project.plot], ["Levels", SPEC.project.level],
+  ["Covered", MULTI
+    ? `≈ ${Math.round(MODELS.reduce((s, m) => s + m.covered_area, 0) / MODELS.length).toLocaleString()} sq ft per option`
+    : `≈ ${MODELS[0].covered_area.toLocaleString()} sq ft`],
+];
+if (SPEC.project.facts && !MULTI && MODELS[0].living_area) facts.push(["Living area", `≈ ${MODELS[0].living_area.toLocaleString()} sq ft`]);
+for (const [k, v] of facts) {
+  const dt = document.createElement("dt"), dd = document.createElement("dd");
+  dt.textContent = k; dd.textContent = v;
+  el("meta").append(dt, dd);
+}
+el("note").textContent = (SPEC.source
+  ? `Built from the 2D drawing on page ${SPEC.source.page} of ${SPEC.source.file}. Room sizes are the drawing's own dimension strings; areas are measured from the traced walls. `
+  : "") + (SPEC.project.note || "");
+
+// ---------- scene ----------
+const stage = el("stage");
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputEncoding = THREE.sRGBEncoding;
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+stage.prepend(renderer.domElement);
+
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, 1, 0.3, 900);
+const controls = new THREE.OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.maxPolarAngle = Math.PI * 0.495;
+controls.maxDistance = 320;
+
+scene.add(new THREE.HemisphereLight(0xf4f6ff, 0x8a8478, 0.75));
+const sun = new THREE.DirectionalLight(0xfff3e2, 0.85);
+const R = Math.max(totalW, maxD);
+sun.position.set(-R * 0.7, R * 1.4 + topElev, R);
+sun.castShadow = true;
+sun.shadow.mapSize.set(2048, 2048);
+Object.assign(sun.shadow.camera, { left: -R * 0.8, right: R * 0.8, top: R * 0.8, bottom: -R * 0.8, near: 1, far: R * 4 });
+sun.shadow.bias = -0.0004;
+scene.add(sun);
+
+const ground = new THREE.Mesh(new THREE.PlaneGeometry(800, 800), new THREE.MeshStandardMaterial({ roughness: 1 }));
+ground.rotation.x = -Math.PI / 2;
+ground.position.y = -0.31;
+ground.receiveShadow = true;
+scene.add(ground);
+function themeColors() {
+  const c = getComputedStyle(document.documentElement).getPropertyValue("--scene").trim();
+  scene.background = new THREE.Color(c);
+  ground.material.color.set(c).offsetHSL(0, 0, -0.04);
+}
+
+const mat = (color, extra = {}) => new THREE.MeshStandardMaterial({ color, roughness: 0.85, ...extra });
+const M = {
+  wall: mat(0xf3f1ec), plinth: mat(0x9b968c), slab: mat(0xd8d4cc),
+  glass: mat(0x9cc3d6, { transparent: true, opacity: 0.35, roughness: 0.1, metalness: 0.1 }),
+  gate: mat(0x3a3f3d, { metalness: 0.6, roughness: 0.4 }),
+  counter: mat(0xd9d4cb), metal: mat(0x2b2d2e, { metalness: 0.5 }), steel: mat(0xb8bcbf, { metalness: 0.7, roughness: 0.3 }),
+  porcelain: mat(0xfbfbfa, { roughness: 0.3 }), walnut: mat(0x6b4a33), joinery: mat(0xc7b49a),
+  fabric: mat(0x7c8a86), stone: mat(0xbfb9ae), linen: mat(0xf1ede4), bedframe: mat(0x5a4130),
+  car: mat(0x8e1d2c, { metalness: 0.4, roughness: 0.35 }), tyre: mat(0x1b1b1b), carglass: mat(0x2a3a44, { roughness: 0.15, metalness: 0.3 }),
+  carblue: mat(0x2c4a6e, { metalness: 0.4, roughness: 0.35 }), carsilver: mat(0xb9bdc1, { metalness: 0.5, roughness: 0.35 }),
+  fence: mat(0x4a4038), timber: mat(0x8a6a4a), cushion: mat(0xe9e4da), canvas: mat(0xf0ece2, { side: THREE.DoubleSide }),
+  fire: new THREE.MeshStandardMaterial({ color: 0xff7a2a, emissive: 0xff5a10, emissiveIntensity: 1.2 }),
+  leaf: mat(0x5f7f4a, { flatShading: true }), leafdark: mat(0x4a6a3d, { flatShading: true }), bark: mat(0x5b4636),
+  pool: mat(0x9fd8e3, { roughness: 0.5 }), poolfloor: mat(0x7ccad9, { roughness: 0.5 }),
+};
+M.glass.side = THREE.DoubleSide;
+const edgeMat = new THREE.LineBasicMaterial({ color: 0x1c2320, transparent: true, opacity: 0.28 });
+
+// All geometry below is in a model's local feet: x across, z = drawing's y (back to front), y up.
+function box(x1, z1, x2, z2, y1, y2, material, edges) {
+  const m = new THREE.Mesh(new THREE.BoxGeometry(x2 - x1, y2 - y1, z2 - z1), material);
+  m.position.set((x1 + x2) / 2, (y1 + y2) / 2, (z1 + z2) / 2);
+  m.castShadow = m.receiveShadow = true;
+  if (edges) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), edgeMat));
+  return m;
+}
+function segBox(a, b, t, f0, f1, y1, y2, material, edges) {
+  const ax = a[0] + (b[0] - a[0]) * f0, az = a[1] + (b[1] - a[1]) * f0;
+  const bx = a[0] + (b[0] - a[0]) * f1, bz = a[1] + (b[1] - a[1]) * f1;
+  const len = Math.hypot(bx - ax, bz - az);
+  const m = new THREE.Mesh(new THREE.BoxGeometry(len, y2 - y1, t), material);
+  m.position.set((ax + bx) / 2, (y1 + y2) / 2, (az + bz) / 2);
+  m.rotation.y = -Math.atan2(bz - az, bx - ax);
+  m.castShadow = m.receiveShadow = true;
+  if (edges) m.add(new THREE.LineSegments(new THREE.EdgesGeometry(m.geometry), edgeMat));
+  return m;
+}
+
+const FLOOR = {
+  wood:     { size: 6,  draw(g) { for (let i = 0; i < 8; i++) { g.fillStyle = ["#b88a5e", "#a97c52", "#bf9264", "#a47650"][i % 4]; g.fillRect(0, i * 32, 256, 32); g.fillStyle = "rgba(60,35,15,.35)"; g.fillRect(0, i * 32, 256, 1.5); g.fillRect((i * 97) % 256, i * 32, 1.5, 32); } } },
+  tile:     { size: 4,  draw(g) { g.fillStyle = "#e6e3dc"; g.fillRect(0, 0, 256, 256); g.fillStyle = "#b9b4aa"; for (let i = 0; i < 4; i++) { g.fillRect(i * 64, 0, 2, 256); g.fillRect(0, i * 64, 256, 2); } } },
+  pavers:   { size: 4,  draw(g) { g.fillStyle = "#b79f83"; g.fillRect(0, 0, 256, 256); g.fillStyle = "#8d7860"; for (let i = 0; i < 2; i++) { g.fillRect(i * 128, 0, 3, 256); g.fillRect(0, i * 128, 256, 3); } } },
+  lawn:     { size: 12, draw(g) { g.fillStyle = "#6f9a4f"; g.fillRect(0, 0, 256, 256); g.fillStyle = "#77a456"; for (let i = 0; i < 4; i += 2) g.fillRect(0, i * 64, 256, 64); for (let i = 0; i < 2500; i++) { g.fillStyle = `rgba(${Math.random() < .5 ? "30,60,20" : "200,230,150"},.10)`; g.fillRect(Math.random() * 256, Math.random() * 256, 2, 3); } } },
+  deck:     { size: 5,  draw(g) { for (let i = 0; i < 12; i++) { g.fillStyle = ["#9a7656", "#8f6c4d", "#a07b59"][i % 3]; g.fillRect(i * 21.33, 0, 21.33, 256); g.fillStyle = "rgba(40,25,10,.55)"; g.fillRect(i * 21.33, 0, 2, 256); g.fillRect(i * 21.33, (i * 71) % 256, 21.33, 1.5); } } },
+  travertine: { size: 8, draw(g) { g.fillStyle = "#e4d9c6"; g.fillRect(0, 0, 256, 256); g.fillStyle = "#c9bca5"; for (let r = 0; r < 4; r++) { g.fillRect(0, r * 64, 256, 2); for (let c = 0; c < 3; c++) g.fillRect(((c * 96) + (r % 2) * 48) % 256, r * 64, 2, 64); } for (let i = 0; i < 900; i++) { g.fillStyle = "rgba(150,130,100,.08)"; g.fillRect(Math.random() * 256, Math.random() * 256, 4, 1); } } },
+  concrete: { size: 10, draw(g) { g.fillStyle = "#a9a7a1"; g.fillRect(0, 0, 256, 256); for (let i = 0; i < 1800; i++) { g.fillStyle = `rgba(${Math.random() < .5 ? "0,0,0" : "255,255,255"},.06)`; g.fillRect(Math.random() * 256, Math.random() * 256, 2, 2); } g.fillStyle = "#8f8d87"; g.fillRect(0, 0, 256, 2); g.fillRect(0, 0, 2, 256); } },
+};
+// Floors are ShapeGeometry, whose UVs are plan coordinates in feet, so one texture repeat = `size` feet
+const floorMats = {};
+function floorMat(kind) {
+  if (floorMats[kind]) return floorMats[kind];
+  const c = document.createElement("canvas"); c.width = c.height = 256;
+  FLOOR[kind].draw(c.getContext("2d"));
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(1 / FLOOR[kind].size, 1 / FLOOR[kind].size);
+  t.encoding = THREE.sRGBEncoding;
+  t.anisotropy = renderer.capabilities.getMaxAnisotropy();
+  return (floorMats[kind] = new THREE.MeshStandardMaterial({ map: t, roughness: 0.75 }));
+}
+// Plan rect -> shape in the XY plane; a mesh rotated -90° about X lays it flat with shape y = -z
+function rectPath(x1, z1, x2, z2, P = THREE.Shape) {
+  const s = new P();
+  s.moveTo(x1, -z1); s.lineTo(x2, -z1); s.lineTo(x2, -z2); s.lineTo(x1, -z2); s.closePath();
+  return s;
+}
+const inside = (h, r) => h[0] >= r[0] - 0.01 && h[1] >= r[1] - 0.01 && h[2] <= r[2] + 0.01 && h[3] <= r[3] + 0.01;
+const poolRects = lv => lv.furniture.filter(f => f.type === "pool").map(f => f.r);
+function flatShape(r, holes) {
+  const s = rectPath(...r);
+  for (const h of holes) if (inside(h, r)) s.holes.push(rectPath(...h, THREE.Path));
+  return s;
+}
+
+// Water: one shared animated ripple texture
+const waterTex = (() => {
+  const c = document.createElement("canvas"); c.width = c.height = 256;
+  const g = c.getContext("2d");
+  g.fillStyle = "#3e9fc0"; g.fillRect(0, 0, 256, 256);
+  g.strokeStyle = "rgba(220,250,255,.35)"; g.lineWidth = 2;
+  for (let i = 0; i < 70; i++) {
+    const x = Math.random() * 256, y = Math.random() * 256, r = 6 + Math.random() * 18;
+    g.beginPath(); g.ellipse(x, y, r, r * 0.45, Math.random() * Math.PI, 0, Math.PI * 1.2); g.stroke();
+  }
+  const t = new THREE.CanvasTexture(c);
+  t.wrapS = t.wrapT = THREE.RepeatWrapping;
+  t.repeat.set(1 / 9, 1 / 9);
+  t.encoding = THREE.sRGBEncoding;
+  return t;
+})();
+const waterMat = new THREE.MeshStandardMaterial({ map: waterTex, transparent: true, opacity: 0.78, roughness: 0.08, metalness: 0.1 });
+
+function addOpening(group, o) {
+  const [x1, z1, x2, z2] = o.r;
+  if (o.type === "door") {
+    group.add(box(x1, z1, x2, z2, D.door_head, H, M.wall, true));
+  } else if (o.type === "window" || o.type === "slider") {
+    const sill = o.type === "slider" ? 0 : D.window_sill, head = o.type === "slider" ? D.door_head : D.window_head;
+    if (sill > 0) group.add(box(x1, z1, x2, z2, 0, sill, M.wall, true));
+    group.add(box(x1, z1, x2, z2, head, H, M.wall, true));
+    const thin = 0.08, cz = (z1 + z2) / 2, cx = (x1 + x2) / 2;
+    group.add((x2 - x1) > (z2 - z1) ? box(x1, cz - thin, x2, cz + thin, sill, head, M.glass)
+                                    : box(cx - thin, z1, cx + thin, z2, sill, head, M.glass));
+  } else if (o.type === "gate") {
+    const along = (x2 - x1) > (z2 - z1), len = along ? x2 - x1 : z2 - z1, bars = Math.round(len / 0.5);
+    group.add(box(x1, z1, x2, z2, 4.3, 4.5, M.gate), box(x1, z1, x2, z2, 0.3, 0.45, M.gate));
+    for (let i = 0; i <= bars; i++) {
+      const p = (along ? x1 : z1) + (len * i) / bars;
+      group.add(along ? box(p - 0.05, z1, p + 0.05, z2, 0.3, 4.5, M.gate) : box(x1, p - 0.05, x2, p + 0.05, 0.3, 4.5, M.gate));
+    }
+  }
+}
+
+function addSeg(group, s) {
+  if (!s.open) { group.add(segBox(s.a, s.b, s.t, 0, 1, 0, H, M.wall, true)); return; }
+  const [f0, f1] = s.open.at;
+  group.add(segBox(s.a, s.b, s.t, 0, f0, 0, H, M.wall, true), segBox(s.a, s.b, s.t, f1, 1, 0, H, M.wall, true));
+  if (s.open.type === "door") group.add(segBox(s.a, s.b, s.t, f0, f1, D.door_head, H, M.wall, true));
+  if (s.open.type === "window") {
+    group.add(segBox(s.a, s.b, s.t, f0, f1, 0, D.window_sill, M.wall, true), segBox(s.a, s.b, s.t, f0, f1, D.window_head, H, M.wall, true));
+    group.add(segBox(s.a, s.b, 0.16, f0, f1, D.window_sill, D.window_head, M.glass));
+  }
+}
+
+function addBed(group, [x1, z1, x2, z2], head = "+x") {
+  const t = 0.25, pd = 1.45, mx = (x1 + x2) / 2, mz = (z1 + z2) / 2;
+  group.add(box(x1, z1, x2, z2, 0, 1.1, M.bedframe), box(x1 + 0.12, z1 + 0.12, x2 - 0.12, z2 - 0.12, 1.1, 1.85, M.linen));
+  const P = (a, b, c, d) => group.add(box(a, b, c, d, 1.85, 2.25, M.porcelain));
+  if (head === "+x") { group.add(box(x2 - t, z1, x2, z2, 0, 3.4, M.bedframe)); P(x2 - t - pd, z1 + 0.35, x2 - t - 0.15, mz - 0.12); P(x2 - t - pd, mz + 0.12, x2 - t - 0.15, z2 - 0.35); }
+  if (head === "-x") { group.add(box(x1, z1, x1 + t, z2, 0, 3.4, M.bedframe)); P(x1 + t + 0.15, z1 + 0.35, x1 + t + pd, mz - 0.12); P(x1 + t + 0.15, mz + 0.12, x1 + t + pd, z2 - 0.35); }
+  if (head === "+y") { group.add(box(x1, z2 - t, x2, z2, 0, 3.4, M.bedframe)); P(x1 + 0.35, z2 - t - pd, mx - 0.12, z2 - t - 0.15); P(mx + 0.12, z2 - t - pd, x2 - 0.35, z2 - t - 0.15); }
+  if (head === "-y") { group.add(box(x1, z1, x2, z1 + t, 0, 3.4, M.bedframe)); P(x1 + 0.35, z1 + t + 0.15, mx - 0.12, z1 + t + pd); P(mx + 0.12, z1 + t + 0.15, x2 - 0.35, z1 + t + pd); }
+}
+
+function addStair(group, f) {
+  const [x1, z1, x2, z2] = f.r, n = f.steps, rise = (f.z1 - f.z0) / n;
+  const dz = (z2 - z1) / n, dx = (x2 - x1) / n;
+  for (let i = 0; i < n; i++) {
+    const top = f.z0 + rise * (i + 1);
+    const r = {
+      "-y": [x1, z2 - dz * (i + 1), x2, z2 - dz * i], "+y": [x1, z1 + dz * i, x2, z1 + dz * (i + 1)],
+      "-x": [x2 - dx * (i + 1), z1, x2 - dx * i, z2], "+x": [x1 + dx * i, z1, x1 + dx * (i + 1), z2],
+    }[f.dir];
+    group.add(box(r[0], r[1], r[2], r[3], 0, top, M.stone, true));
+  }
+}
+
+// Recessed pool (or raised spa when `raise` > 0): tiled shell, coping, water, optional steps/ledges
+function addPool(group, f) {
+  const [x1, z1, x2, z2] = f.r, dep = f.depth || 5, raise = f.raise || 0, cw = f.coping ?? 1, t = 0.3;
+  group.add(box(x1 - t, z1 - t, x2 + t, z1, -dep, raise, M.pool), box(x1 - t, z2, x2 + t, z2 + t, -dep, raise, M.pool));
+  group.add(box(x1 - t, z1, x1, z2, -dep, raise, M.pool), box(x2, z1, x2 + t, z2, -dep, raise, M.pool));
+  group.add(box(x1, z1, x2, z2, -dep - 0.2, -dep, M.poolfloor));
+  if (raise > 0) {
+    const w = 0.8;
+    group.add(box(x1 - t - w, z1 - t - w, x2 + t + w, z1 - t, 0, raise, M.stone), box(x1 - t - w, z2 + t, x2 + t + w, z2 + t + w, 0, raise, M.stone));
+    group.add(box(x1 - t - w, z1 - t, x1 - t, z2 + t, 0, raise, M.stone), box(x2 + t, z1 - t, x2 + t + w, z2 + t, 0, raise, M.stone));
+  }
+  const c0 = raise, o = raise > 0 ? t + 0.8 : cw;
+  group.add(box(x1 - o, z1 - o, x2 + o, z1, c0, c0 + 0.15, M.stone, true), box(x1 - o, z2, x2 + o, z2 + o, c0, c0 + 0.15, M.stone, true));
+  group.add(box(x1 - o, z1, x1, z2, c0, c0 + 0.15, M.stone, true), box(x2, z1, x2 + o, z2, c0, c0 + 0.15, M.stone, true));
+  for (const s of f.steps || []) {
+    const [a, b] = s.span || [0, (s.edge.endsWith("x") ? z2 - z1 : x2 - x1)];
+    const r = {
+      "-x": [x1 + s.o, z1 + a, x1 + s.o + s.tread, z1 + b], "+x": [x2 - s.o - s.tread, z1 + a, x2 - s.o, z1 + b],
+      "-y": [x1 + a, z1 + s.o, x1 + b, z1 + s.o + s.tread], "+y": [x1 + a, z2 - s.o - s.tread, x1 + b, z2 - s.o],
+    }[s.edge];
+    group.add(box(r[0], r[1], r[2], r[3], -dep, raise + s.top, M.pool, true));
+  }
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(x2 - x1, z2 - z1), waterMat);
+  water.rotation.x = -Math.PI / 2;
+  water.position.set((x1 + x2) / 2, raise - 0.35, (z1 + z2) / 2);
+  water.receiveShadow = true;
+  group.add(water);
+}
+
+function addPergola(group, [x1, z1, x2, z2], h = 9) {
+  const p = 0.5;
+  for (const [x, z] of [[x1, z1], [x2 - p, z1], [x1, z2 - p], [x2 - p, z2 - p]]) group.add(box(x, z, x + p, z + p, 0, h, M.timber, true));
+  const alongX = (x2 - x1) >= (z2 - z1);
+  if (alongX) { group.add(box(x1 - 0.5, z1, x2 + 0.5, z1 + 0.35, h - 0.9, h, M.timber), box(x1 - 0.5, z2 - 0.35, x2 + 0.5, z2, h - 0.9, h, M.timber)); }
+  else { group.add(box(x1, z1 - 0.5, x1 + 0.35, z2 + 0.5, h - 0.9, h, M.timber), box(x2 - 0.35, z1 - 0.5, x2, z2 + 0.5, h - 0.9, h, M.timber)); }
+  const n = Math.round((alongX ? x2 - x1 : z2 - z1) / 1.25);
+  for (let i = 0; i <= n; i++) {
+    const s = (alongX ? x1 : z1) + ((alongX ? x2 - x1 : z2 - z1) - 0.2) * (i / n);
+    group.add(alongX ? box(s, z1 - 0.6, s + 0.2, z2 + 0.6, h, h + 0.5, M.timber) : box(x1 - 0.6, s, x2 + 0.6, s + 0.2, h, h + 0.5, M.timber));
+  }
+}
+
+function addLounger(group, [x1, z1, x2, z2], head = "-y") {
+  group.add(box(x1, z1, x2, z2, 0, 1.0, M.timber), box(x1 + 0.1, z1 + 0.1, x2 - 0.1, z2 - 0.1, 1.0, 1.3, M.cushion));
+  const b = 1.9;
+  const r = { "-y": [x1, z1, x2, z1 + b], "+y": [x1, z2 - b, x2, z2], "-x": [x1, z1, x1 + b, z2], "+x": [x2 - b, z1, x2, z2] }[head];
+  group.add(box(r[0] + 0.1, r[1] + 0.1, r[2] - 0.1, r[3] - 0.1, 1.3, 2.6, M.cushion));
+}
+
+function addUmbrella(group, [x, z], rad) {
+  const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 8, 8), M.metal);
+  pole.position.set(x, 4, z); pole.castShadow = true;
+  const top = new THREE.Mesh(new THREE.ConeGeometry(rad, 1.6, 8, 1, true), M.canvas);
+  top.position.set(x, 7.6, z); top.castShadow = true;
+  group.add(pole, top);
+}
+
+function addTree(group, [x, z], rad, h) {
+  const trunk = new THREE.Mesh(new THREE.CylinderGeometry(0.25, 0.4, h * 0.55, 8), M.bark);
+  trunk.position.set(x, h * 0.275, z); trunk.castShadow = true;
+  group.add(trunk);
+  for (const [dx, dy, dz, k, m] of [[0, 0.68, 0, 1, M.leaf], [rad * 0.35, 0.82, -rad * 0.2, 0.7, M.leafdark], [-rad * 0.3, 0.56, rad * 0.25, 0.65, M.leafdark]]) {
+    const c = new THREE.Mesh(new THREE.IcosahedronGeometry(rad * k, 1), m);
+    c.position.set(x + dx, h * dy, z + dz); c.castShadow = true;
+    group.add(c);
+  }
+}
+
+function addShrub(group, [x, z], rad, y = 0) {
+  const c = new THREE.Mesh(new THREE.IcosahedronGeometry(rad, 1), M.leafdark);
+  c.scale.y = 0.8; c.position.set(x, y + rad * 0.7, z); c.castShadow = c.receiveShadow = true;
+  group.add(c);
+}
+
+function addCar(group, [x1, z1, x2, z2], color) {
+  const l = z2 - z1, body = M[color] || M.car;
+  group.add(box(x1 + 0.1, z1, x2 - 0.1, z2, 0.75, 2.6, body));
+  group.add(box(x1 + 0.45, z1 + l * 0.3, x2 - 0.45, z1 + l * 0.7, 2.6, 4.3, M.carglass));
+  group.add(box(x1 + 0.5, z1 + l * 0.33, x2 - 0.5, z1 + l * 0.67, 4.3, 4.45, body));
+  for (const zz of [z1 + l * 0.18, z2 - l * 0.18]) for (const xx of [x1 + 0.1, x2 - 0.1]) {
+    const t = new THREE.Mesh(new THREE.CylinderGeometry(1.05, 1.05, 0.7, 24), M.tyre);
+    t.rotation.z = Math.PI / 2; t.position.set(xx, 1.05, zz); t.castShadow = true;
+    group.add(t);
+  }
+}
+
+// Build every model and level
+const labelsEl = el("labels");
+const labels = [];
+function makeLabel(title, sub, cls) {
+  const d = document.createElement("div");
+  d.className = "lbl" + (cls ? " " + cls : "");
+  d.innerHTML = "<b></b>" + (sub ? "<span></span>" : "");
+  d.firstChild.textContent = title;
+  if (sub) d.lastChild.textContent = sub;
+  labelsEl.append(d);
+  return d;
+}
+
+const groundHoles = [];
+for (const m of MODELS) {
+  m.group = new THREE.Group();
+  m.group.position.set(m.ox, 0, m.oz);
+  scene.add(m.group);
+  const g0 = m.levels[0];
+  const plinth = new THREE.Mesh(
+    new THREE.ExtrudeGeometry(flatShape([0, 0, g0.width, g0.depth], poolRects(g0)), { depth: 0.3, bevelEnabled: false }), M.plinth);
+  plinth.rotation.x = -Math.PI / 2;
+  plinth.position.y = -0.3;
+  plinth.receiveShadow = true;
+  m.group.add(plinth);
+  for (const [x1, z1, x2, z2] of poolRects(g0)) groundHoles.push([m.ox + x1, m.oz + z1, m.ox + x2, m.oz + z2]);
+  if (MULTI) labels.push({ el: makeLabel(m.name, null, "tag"), p: new THREE.Vector3(m.ox + m.width / 2, 0.3, m.oz + m.depth + 4), lv: null });
+
+  m.levels.forEach((lv, li) => {
+    lv.index = li;
+    lv.group = new THREE.Group();
+    lv.group.position.y = lv.elevation;
+    m.group.add(lv.group);
+    for (const s of lv.slab) lv.group.add(box(s[0], s[1], s[2], s[3], -D.slab, 0, M.slab, true));
+
+    lv.rooms.forEach((room, ri) => {
+      const [x1, z1, x2, z2] = room.r, w = x2 - x1, d = z2 - z1;
+      if (room.floor !== "none") {
+        const f = new THREE.Mesh(new THREE.ShapeGeometry(flatShape(room.r, poolRects(lv))), floorMat(room.floor));
+        f.rotation.x = -Math.PI / 2;
+        f.position.y = 0.02 + ri * 0.004;
+        f.receiveShadow = true;
+        lv.group.add(f);
+      }
+      room.world = new THREE.Vector3(m.ox + x1 + w / 2, lv.elevation, m.oz + z1 + d / 2);
+      room.span = Math.max(w, d);
+      room.model = m; room.level = lv;
+      const lp = room.label_at ? new THREE.Vector3(m.ox + room.label_at[0], lv.elevation + 0.3, m.oz + room.label_at[1]) : room.world.clone().setY(lv.elevation + 0.3);
+      if (room.label !== false) labels.push({ el: makeLabel(room.name, room.dims), p: lp, lv, model: m });
+    });
+
+    lv.walls3d = new THREE.Group();
+    lv.group.add(lv.walls3d);
+    for (const [x1, z1, x2, z2] of lv.walls) lv.walls3d.add(box(x1, z1, x2, z2, 0, H, M.wall, true));
+    for (const w of lv.lowwalls || []) lv.walls3d.add(box(...w.r, 0, w.h || H, M[w.color] || M.wall, true));
+    for (const s of lv.segs) addSeg(lv.walls3d, s);
+    for (const o of lv.openings) (o.type === "gate" ? addOpening(lv.group, o) : addOpening(lv.walls3d, o));
+
+    lv.furn = new THREE.Group();
+    lv.group.add(lv.furn);
+    for (const f of lv.furniture) {
+      if (f.type === "box") { const [x1, z1, x2, z2] = f.r, y = f.y || 0; lv.furn.add(box(x1, z1, x2, z2, y, y + f.h, M[f.color] || M.stone)); }
+      else if (f.type === "cyl") {
+        const c = new THREE.Mesh(new THREE.CylinderGeometry(f.rad, f.rad, f.h, 32), M[f.color] || M.stone);
+        c.position.set(f.c[0], f.h / 2, f.c[1]); c.castShadow = c.receiveShadow = true; lv.furn.add(c);
+      }
+      else if (f.type === "bed") addBed(lv.furn, f.r, f.head);
+      else if (f.type === "car") addCar(lv.furn, f.r, f.color);
+      else if (f.type === "lounger") addLounger(lv.furn, f.r, f.head);
+      else if (f.type === "umbrella") addUmbrella(lv.furn, f.c, f.rad);
+      // structure and landscaping stay when furniture is hidden
+      else if (f.type === "stair") addStair(lv.group, f);
+      else if (f.type === "pool") addPool(lv.group, f);
+      else if (f.type === "pergola") addPergola(lv.group, f.r, f.h);
+      else if (f.type === "tree") addTree(lv.group, f.c, f.rad, f.h || 14);
+      else if (f.type === "shrub") addShrub(lv.group, f.c, f.rad, f.y);
+    }
+  });
+}
+
+if (groundHoles.length) ground.geometry = new THREE.ShapeGeometry(flatShape([-400, -400, 400, 400], groundHoles));
+
+// ---------- floors, walls, furniture state ----------
+let shownLevel = maxLevels - 1;
+const wallH = el("wallH"), wallOut = el("wallOut");
+function applyState() {
+  const k = +wallH.value, furnOn = el("showFurn").checked;
+  for (const m of MODELS) {
+    const top = Math.min(shownLevel, m.levels.length - 1);
+    m.levels.forEach((lv, i) => {
+      lv.group.visible = i <= top;
+      lv.walls3d.scale.y = i === top ? k : 1;
+      lv.furn.visible = furnOn;
+    });
+  }
+  wallOut.textContent = ft(H * k);
+  // Only the top visible floor gets labels; lower-floor labels would float through the slab above
+  for (const l of labels) l.hidden = l.lv ? l.lv.index !== Math.min(shownLevel, l.model.levels.length - 1) : false;
+}
+wallH.addEventListener("input", applyState);
+el("showFurn").addEventListener("change", applyState);
+el("showLabels").addEventListener("change", e => { labelsEl.hidden = !e.target.checked; });
+
+if (maxLevels > 1) {
+  el("floorsRow").hidden = false;
+  const longest = MODELS.find(m => m.levels.length === maxLevels);
+  longest.levels.forEach((lv, i) => {
+    const b = document.createElement("button");
+    b.type = "button";
+    b.textContent = lv.name.replace(/\s*floor$/i, "");
+    b.addEventListener("click", () => setLevel(i));
+    el("floors").append(b);
+  });
+}
+function setLevel(i) {
+  shownLevel = i;
+  [...el("floors").children].forEach((b, j) => b.setAttribute("aria-pressed", String(j === i)));
+  applyState();
+}
+if (maxLevels > 1) { wallH.value = 0.55; setLevel(maxLevels - 1); } else applyState();
+
+// ---------- labels ----------
+const tmp = new THREE.Vector3();
+function placeLabels(w, h) {
+  if (labelsEl.hidden) return;
+  for (const l of labels) {
+    tmp.copy(l.p).project(camera);
+    const off = l.hidden || tmp.z > 1 || camera.position.distanceTo(l.p) < 4 || Math.abs(tmp.x) > 1.1 || Math.abs(tmp.y) > 1.1;
+    l.el.style.display = off ? "none" : "";
+    if (!off) l.el.style.transform = `translate(${(tmp.x * 0.5 + 0.5) * w}px, ${(-tmp.y * 0.5 + 0.5) * h}px) translate(-50%, -50%)`;
+  }
+}
+
+// ---------- camera ----------
+const V = (x, y, z) => new THREE.Vector3(x, y, z);
+const allRooms = MODELS.flatMap(m => m.levels.flatMap(l => l.rooms));
+const eyeRoom = allRooms.find(r => r.name === SPEC.eye_room) || allRooms[0];
+const VIEWS = {
+  "3d":   () => { const r = Math.max(R, 36) * 1.2; return [V(-r * 0.62, r * 0.92 + topElev, r * 1.02), V(0, topElev * 0.4, 2)]; },
+  "plan": () => [V(0, R * 1.6 + topElev, 0.01), V(0, 0, 0)],
+  "eye":  () => {
+    const [, , , z2] = eyeRoom.r, w = eyeRoom.world, front = eyeRoom.model.oz + z2;
+    return [V(w.x - 1, w.y + 5.3, front - 1.5), V(w.x + 0.8, w.y + 4.8, front - 7)];
+  },
+};
+let anim = null;
+function fly(pos, tgt, ms = 900) {
+  anim = { p0: camera.position.clone(), t0: controls.target.clone(), pos, tgt, start: performance.now(), ms: reduceMotion ? 0 : ms };
+}
+const viewBtns = [...document.querySelectorAll("[data-view]")];
+function pressView(name) { viewBtns.forEach(b => b.setAttribute("aria-pressed", String(b.dataset.view === name))); }
+function setView(name) {
+  pressView(name);
+  if (name === "eye" && eyeRoom.level.index > shownLevel) setLevel(eyeRoom.level.index);
+  controls.minDistance = name === "eye" ? 0.5 : 6;
+  const [p, t] = VIEWS[name]();
+  fly(p, t);
+  selectRow(null);
+}
+viewBtns.forEach(b => b.addEventListener("click", () => setView(b.dataset.view)));
+function flyTo(center, span) {
+  pressView(null);
+  controls.minDistance = 6;
+  fly(center.clone().add(V(-span * 0.55, span * 1.15 + 8, span * 0.9 + 4)), center);
+}
+
+// ---------- tables ----------
+const pickRows = [];
+function pickRow(tr, go) {
+  tr.className = "pick";
+  tr.tabIndex = 0;
+  tr.addEventListener("click", () => { go(); selectRow(tr); });
+  tr.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); selectRow(tr); } });
+  pickRows.push(tr);
+}
+function selectRow(tr) { pickRows.forEach(r => r.classList.toggle("on", r === tr)); }
+function cells(tr, vals) { vals.forEach(([cls, txt]) => { const td = document.createElement("td"); if (cls) td.className = cls; td.textContent = txt; tr.append(td); }); }
+
+const roomsBody = el("rooms");
+for (const m of MODELS) for (const lv of m.levels) {
+  if (MULTI || maxLevels > 1) {
+    const g = document.createElement("tr"); g.className = "grp";
+    const th = document.createElement("th"); th.colSpan = 3;
+    th.textContent = [MULTI ? m.name : null, maxLevels > 1 ? lv.name : null].filter(Boolean).join(" · ");
+    g.append(th); roomsBody.append(g);
+  }
+  for (const room of lv.rooms) {
+    if (room.label === false) continue;
+    const tr = document.createElement("tr");
+    cells(tr, [[null, room.name], ["dim", room.dims], ["num", `${room.area} sf`]]);
+    pickRow(tr, () => { if (lv.index > shownLevel) setLevel(lv.index); flyTo(room.world, room.span); });
+    roomsBody.append(tr);
+  }
+}
+
+if (MULTI) {
+  el("compareSec").hidden = false;
+  const stats = MODELS.map(m => {
+    const rooms = m.levels.flatMap(l => l.rooms);
+    const big = rooms.reduce((a, b) => (b.area > a.area ? b : a));
+    return {
+      m, beds: rooms.filter(r => /bed/i.test(r.name)).length, baths: rooms.filter(r => /bath/i.test(r.name)).length,
+      area: rooms.reduce((s, r) => s + r.area, 0), big,
+    };
+  });
+  const bestArea = Math.max(...stats.map(s => s.area));
+  for (const s of stats) {
+    const tr = document.createElement("tr");
+    cells(tr, [[null, s.m.name], ["num", s.beds], ["num", s.baths], ["num" + (s.area === bestArea ? " best" : ""), `${s.area} sf`]]);
+    pickRow(tr, () => flyTo(V(s.m.ox + s.m.width / 2, 0, s.m.oz + s.m.depth / 2), s.m.depth * 0.75));
+    el("compare").append(tr);
+  }
+}
+
+// ---------- loop ----------
+function resize() {
+  const w = stage.clientWidth, h = stage.clientHeight;
+  renderer.setSize(w, h, false);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+new ResizeObserver(resize).observe(stage);
+themeColors();
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", themeColors);
+new MutationObserver(themeColors).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+
+controls.minDistance = 6;
+const [p0, t0] = VIEWS["3d"]();
+camera.position.copy(p0);
+controls.target.copy(t0);
+resize();
+
+renderer.setAnimationLoop(now => {
+  if (anim) {
+    const k = anim.ms ? Math.min(1, (now - anim.start) / anim.ms) : 1;
+    const e = k < 0.5 ? 4 * k * k * k : 1 - Math.pow(-2 * k + 2, 3) / 2;
+    camera.position.lerpVectors(anim.p0, anim.pos, e);
+    controls.target.lerpVectors(anim.t0, anim.tgt, e);
+    if (k >= 1) anim = null;
+  }
+  if (!reduceMotion) waterTex.offset.set(now * 0.000012, now * 0.000007);
+  controls.update();
+  renderer.render(scene, camera);
+  placeLabels(stage.clientWidth, stage.clientHeight);
+});
+</script>

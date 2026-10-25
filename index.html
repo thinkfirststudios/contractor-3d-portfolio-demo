@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>See It Before It’s Built</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one column gallery of project cards, drafting-sheet palette shared with the 3D viewer. */
+:root {
+  --bg: #e9ece8; --card: #f6f7f4; --ink: #1c2320; --muted: #5d6762; --rule: #cdd3ce; --accent: #a8216f;
+  --font-display: "Barlow Condensed", "Arial Narrow", sans-serif;
+  --font-body: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, Consolas, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --bg: #151a18; --card: #1c2220; --ink: #e4e9e5; --muted: #98a39d; --rule: #2f3834; --accent: #e070b0; color-scheme: dark; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: 15px/1.5 var(--font-body); }
+.wrap { max-width: 980px; margin: 0 auto; padding-block: 56px 72px; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+.eyebrow { font: 500 12px var(--font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+h1 { font: 700 clamp(40px, 7vw, 68px)/.95 var(--font-display); margin: 8px 0 14px; text-wrap: balance; }
+.lede { max-width: 60ch; color: var(--muted); margin: 0 0 40px; }
+.grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(340px, 100%), 1fr)); gap: 16px; }
+a.card { display: flex; flex-direction: column; gap: 10px; min-width: 0; padding: 22px; background: var(--card); border: 1px solid var(--rule); border-radius: 6px; color: inherit; text-decoration: none; transition: border-color .15s; }
+a.card:hover, a.card:focus-visible { border-color: var(--accent); outline: none; }
+.card h2 { font: 700 30px/1 var(--font-display); margin: 0; }
+.card p { margin: 0; color: var(--muted); font-size: 14px; }
+.stats { display: flex; flex-wrap: wrap; gap: 6px 16px; font: 400 12px var(--font-mono); margin-top: auto; padding-top: 10px; border-top: 1px solid var(--rule); }
+.open { font: 600 14px var(--font-display); letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+@media (prefers-reduced-motion: reduce) { a.card { transition: none; } }
+</style>
+<div class="wrap">
+  <div class="eyebrow">Sample projects · Interactive 3D</div>
+  <h1>See It Before It’s Built</h1>
+  <p class="lede">Homes and backyards turned from 2D plans into interactive 3D models. Open any project to orbit it, switch to a plan view, cut the walls down to see inside, or stand in a room at eye level.</p>
+  <div class="grid">
+    <a class="card" href="01-oakridge.html">
+      <div class="eyebrow">Sample project · New home</div>
+      <h2>The Oakridge</h2>
+      <p>Single-storey family home: an open kitchen, dining and living room opening to the backyard, a private primary suite with walk-in robe and ensuite, two more bedrooms, a mudroom and a double garage.</p>
+      <div class="stats"><span>56&#x27; × 40&#x27;</span><span>Single storey</span></div>
+      <span class="open">Open 3D model →</span>
+    </a>
+    <a class="card" href="02-hartley.html">
+      <div class="eyebrow">Sample project · New home</div>
+      <h2>The Hartley</h2>
+      <p>Two-storey family home on a narrow lot. Downstairs: a full-width kitchen, dining and living room, plus a study, laundry, powder room and double garage. Upstairs: the primary suite with walk-in robe and ensuite, three more bedrooms, a family bath and a balcony over the garage.</p>
+      <div class="stats"><span>36&#x27; × 44&#x27;</span><span>Two storey</span></div>
+      <span class="open">Open 3D model →</span>
+    </a>
+    <a class="card" href="03-resort-backyard.html">
+      <div class="eyebrow">Sample project · Pool &amp; outdoor</div>
+      <h2>Resort Backyard</h2>
+      <p>A full backyard build: a 36&#x27; lap-and-play pool with a sun ledge and entry steps, a raised spa, travertine deck with loungers, a pergola-covered dining and lounge area, an outdoor kitchen with bar seating, and a fire pit corner.</p>
+      <div class="stats"><span>60&#x27; × 46&#x27;</span><span>Pool, spa &amp; outdoor living</span></div>
+      <span class="open">Open 3D model →</span>
+    </a>
+    <a class="card" href="04-courtyard-plunge.html">
+      <div class="eyebrow">Sample project · Pool &amp; outdoor</div>
+      <h2>Courtyard Plunge Pool</h2>
+      <p>A small-lot courtyard rebuilt around a 17&#x27; plunge pool with entry steps and a full-length bench ledge. Hardwood deck, a pergola daybed, dining by the house, loungers, an outdoor shower and screened timber fencing.</p>
+      <div class="stats"><span>34&#x27; × 28&#x27;</span><span>Plunge pool &amp; deck</span></div>
+      <span class="open">Open 3D model →</span>
+    </a>
+  </div>
+</div>
+</html>
